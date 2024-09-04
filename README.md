@@ -13,7 +13,7 @@ MyKTactil is an Android application that allows users to draw on a canvas using 
 
 ## Screenshots
 
-![MyKTactil Screenshot](screenshot.png)
+![MyKTactil Screenshot](app\src\main\res\drawable\screenshot.png)
 
 ## Getting Started
 

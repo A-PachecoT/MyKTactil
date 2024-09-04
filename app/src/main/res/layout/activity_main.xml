@@ -11,7 +11,7 @@
         android:id="@+id/lblposicion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="BIENVENIDO AL CURSO"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.08"
@@ -35,7 +35,7 @@
         android:id="@+id/lblcoordenada"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="TextView"
+        android:text="DE PROGRAMACIÓN MÓVIL"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.849"
@@ -114,18 +114,16 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.815" />
 
-    <Switch
-        android:id="@+id/switchBezier"
-        android:layout_width="94dp"
-        android:layout_height="53dp"
-        android:text="Bezier"
-
+    <Spinner
+        android:id="@+id/spinnerAlgorithm"
+        android:layout_width="151dp"
+        android:layout_height="37dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.179"
+        app:layout_constraintHorizontal_bias="0.109"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnazul"
-        app:layout_constraintVertical_bias="0.755" />
+        app:layout_constraintVertical_bias="0.649" />
 
     <Button
         android:id="@+id/btnClear"

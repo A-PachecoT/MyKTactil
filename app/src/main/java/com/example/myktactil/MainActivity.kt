@@ -17,18 +17,25 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.myktactil.databinding.ActivityMainBinding
+import kotlin.math.pow
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
+import com.example.myktactil.algorithms.DrawingAlgorithms
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding : ActivityMainBinding
     private val controlPoints = mutableListOf<Pair<Float, Float>>()
     private var isDrawingBezier = false
     private var isBezierMode = false
+    private var isBSplineMode = false
+    private val bSplinePoints = mutableListOf<Pair<Float, Float>>()
     lateinit var mBitmap: Bitmap
     lateinit var mCanvas: Canvas
     lateinit var mPaint: Paint
     private lateinit var bezierPaint: Paint
     private var lastX: Float = -1f
     private var lastY: Float = -1f
+    private var currentAlgorithm = "Normal"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +68,36 @@ class MainActivity : AppCompatActivity() {
             windowManager.defaultDisplay.getMetrics(it)
         }
 
+        val algorithms = arrayOf("Normal", "Bezier", "B-Spline")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, algorithms)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerAlgorithm.adapter = adapter
+
+        binding.spinnerAlgorithm.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View, position: Int, id: Long) {
+                currentAlgorithm = algorithms[position]
+                when (currentAlgorithm) {
+                    "Normal" -> {
+                        isBezierMode = false
+                        isBSplineMode = false
+                    }
+                    "Bezier" -> {
+                        isBezierMode = true
+                        isBSplineMode = false
+                    }
+                    "B-Spline" -> {
+                        isBezierMode = false
+                        isBSplineMode = true
+                    }
+                }
+                Toast.makeText(applicationContext, "$currentAlgorithm mode activated", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                // Another interface callback
+            }
+        }
+
         binding.myImg.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View, e: MotionEvent): Boolean {
                 var proporcionancho = binding.myImg.width
@@ -70,21 +107,34 @@ class MainActivity : AppCompatActivity() {
 
                 when (e.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        if (isBezierMode) {
-                            if (!isDrawingBezier) {
-                                controlPoints.clear()
-                                isDrawingBezier = true
+                        when (currentAlgorithm) {
+                            "Normal" -> {
+                                lastX = x
+                                lastY = y
                             }
-                            controlPoints.add(Pair(x, y))
-                            drawControlPoint(x, y)
-                        } else {
-                            // Normal drawing mode
-                            lastX = x
-                            lastY = y
+                            "Bezier" -> {
+                                if (controlPoints.size < 4) {
+                                    controlPoints.add(Pair(x, y))
+                                    drawControlPoint(x, y)
+                                }
+                                if (controlPoints.size == 4) {
+                                    DrawingAlgorithms.drawBezierCurve(mCanvas, mPaint, controlPoints)
+                                    binding.myImg.setImageBitmap(mBitmap)
+                                    controlPoints.clear()
+                                }
+                            }
+                            "B-Spline" -> {
+                                bSplinePoints.add(Pair(x, y))
+                                drawControlPoint(x, y)
+                                if (bSplinePoints.size >= 4) {
+                                    DrawingAlgorithms.drawBSpline(mCanvas, mPaint, bSplinePoints)
+                                    binding.myImg.setImageBitmap(mBitmap)
+                                }
+                            }
                         }
                     }
                     MotionEvent.ACTION_MOVE -> {
-                        if (!isBezierMode) {
+                        if (currentAlgorithm == "Normal") {
                             // Normal drawing mode
                             if (lastX != -1f && lastY != -1f) {
                                 mCanvas.drawLine(lastX, lastY, x, y, mPaint)
@@ -95,11 +145,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     MotionEvent.ACTION_UP -> {
-                        if (isBezierMode && controlPoints.size == 4) {
-                            drawBezierCurve()
-                            isDrawingBezier = false
-                            controlPoints.clear()
-                        } else if (!isBezierMode) {
+                        if (currentAlgorithm == "Normal") {
                             lastX = -1f
                             lastY = -1f
                         }
@@ -148,15 +194,6 @@ class MainActivity : AppCompatActivity() {
 
         })
 
-        binding.switchBezier.setOnClickListener {
-            isBezierMode = !isBezierMode
-            if (isBezierMode) {
-                Toast.makeText(this, "Bezier mode activated. Tap 4 points to draw a curve.", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Normal drawing mode activated.", Toast.LENGTH_SHORT).show()
-            }
-        }
-
         binding.btnClear.setOnClickListener {
             clearScreen()
         }
@@ -177,46 +214,12 @@ class MainActivity : AppCompatActivity() {
         binding.myImg.setImageBitmap(mBitmap)
     }
 
-    private fun drawBezierCurve() {
-        if (controlPoints.size != 4) return
-
-        val path = Path()
-        path.moveTo(controlPoints[0].first, controlPoints[0].second)
-
-        for (t in 0..100) {
-            val tt = t / 100f
-            val x = bezierPoint(tt, controlPoints[0].first, controlPoints[1].first, controlPoints[2].first, controlPoints[3].first)
-            val y = bezierPoint(tt, controlPoints[0].second, controlPoints[1].second, controlPoints[2].second, controlPoints[3].second)
-            path.lineTo(x, y)
-        }
-
-        bezierPaint.color = mPaint.color  // Use the current color from the palette
-        mCanvas.drawPath(path, bezierPaint)
-
-        // Erase control points
-        val erasePaint = Paint().apply {
-            color = Color.WHITE
-            style = Paint.Style.FILL
-        }
-        for (point in controlPoints) {
-            mCanvas.drawCircle(point.first, point.second, 6f, erasePaint)
-        }
-
-        binding.myImg.setImageBitmap(mBitmap)
-    }
-
-    private fun bezierPoint(t: Float, p0: Float, p1: Float, p2: Float, p3: Float): Float {
-        val u = 1 - t
-        return u * u * u * p0 +
-               3 * u * u * t * p1 +
-               3 * u * t * t * p2 +
-               t * t * t * p3
-    }
-
     private fun clearScreen() {
         mCanvas.drawColor(Color.WHITE)
         drawAxes()
         binding.myImg.setImageBitmap(mBitmap)
+        bSplinePoints.clear()
+        controlPoints.clear()
     }
 
     private fun drawAxes() {
